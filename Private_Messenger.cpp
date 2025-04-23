@@ -29,18 +29,18 @@ HWND hEditName;
 SOCKET sock = INVALID_SOCKET;
 
 bool startServer();
-bool startClient(const string& serverIP);
+bool startClient(const wstring& serverIP);
 void receiveMessages(SOCKET sock);
-void sendMessages(const string& message);
-void appendMessageToChat(const string& message);
-void sendName(string name);
-string get_myName();
-void set_myName(string name);
-string get_hisName();
-void set_hisName(string name);
+void sendMessages(const wstring& message);
+void appendMessageToChat(const wstring& message);
+void sendName(wstring name);
+wstring get_myName();
+void set_myName(wstring name);
+wstring get_hisName();
+void set_hisName(wstring name);
 void receiveName(SOCKET sock);
-string myName;
-string hisName;
+wstring myName;
+wstring hisName;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void CreateInterface(HINSTANCE hInstance, int nCmdShow);
@@ -169,7 +169,7 @@ void ShowChatInterface() {
     );
 
     hButtonSend = CreateWindowEx(
-        0, 
+        0,
         L"BUTTON",
         L"Send",
         WS_CHILD | WS_VISIBLE,
@@ -192,72 +192,72 @@ void ResizeControls(HWND hwnd, int width, int height) {
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
-        case WM_COMMAND: {
-            if (LOWORD(wParam) == IDC_MAIN_BUTTON_CONNECT) {
-                int len = GetWindowTextLength(hEditIP) + 1;
-                wchar_t* buf = new wchar_t[len];
-                GetWindowText(hEditIP, buf, len);
-                string serverIP(buf, buf + wcslen(buf));
-                delete[] buf;
+    case WM_COMMAND: {
+        if (LOWORD(wParam) == IDC_MAIN_BUTTON_CONNECT) {
+            int len = GetWindowTextLength(hEditIP) + 1;
+            wchar_t* buf = new wchar_t[len];
+            GetWindowText(hEditIP, buf, len);
+            wstring serverIP(buf);
+            delete[] buf;
 
-                len = GetWindowTextLength(hEditName) + 1;
-                buf = new wchar_t[len];
-                GetWindowText(hEditName, buf, len);
-                string my_name(buf, buf + wcslen(buf));
-                if (my_name.empty())
-                    set_myName("anonym");
-                else
-                    set_myName(my_name);
-                delete[] buf;
+            len = GetWindowTextLength(hEditName) + 1;
+            buf = new wchar_t[len];
+            GetWindowText(hEditName, buf, len);
+            wstring my_name(buf);
+            if (my_name.empty())
+                set_myName(L"anonym");
+            else
+                set_myName(my_name);
+            delete[] buf;
 
-                //thread(startClient, serverIP).detach();
-                if (startClient(serverIP))
-                    ShowChatInterface();
-            }
-            else if (LOWORD(wParam) == IDC_MAIN_BUTTON_SERVER) {
-                int len = GetWindowTextLength(hEditName) + 1;
-                wchar_t* buf = new wchar_t[len];
-                GetWindowText(hEditName, buf, len);
-                string my_name(buf, buf + wcslen(buf));
-                if (my_name.empty())
-                    set_myName("anonym");
-                else
-                    set_myName(my_name);
-                delete[] buf;
+            //thread(startClient, serverIP).detach();
+            if (startClient(serverIP))
+                ShowChatInterface();
+        }
+        else if (LOWORD(wParam) == IDC_MAIN_BUTTON_SERVER) {
+            int len = GetWindowTextLength(hEditName) + 1;
+            wchar_t* buf = new wchar_t[len];
+            GetWindowText(hEditName, buf, len);
+            wstring my_name(buf);
+            if (my_name.empty())
+                set_myName(L"anonym");
+            else
+                set_myName(my_name);
+            delete[] buf;
 
-                //thread(startServer).detach();
-                if(startServer())
-                    ShowChatInterface();
+            //thread(startServer).detach();
+            if (startServer())
+                ShowChatInterface();
+        }
+        else if (LOWORD(wParam) == IDC_MAIN_BUTTON_SEND) {
+            int len = GetWindowTextLength(hEditMessage) + 1;
+            wchar_t* buf = new wchar_t[len];
+            GetWindowText(hEditMessage, buf, len);
+            wstring message(buf);
+            delete[] buf;
+            if (!message.empty()) {
+                SetWindowText(hEditMessage, L"");
+                sendMessages(message);
+                appendMessageToChat(get_myName() + L": " + message);
             }
-            else if (LOWORD(wParam) == IDC_MAIN_BUTTON_SEND) {
-                int len = GetWindowTextLength(hEditMessage) + 1;
-                wchar_t* buf = new wchar_t[len];
-                GetWindowText(hEditMessage, buf, len);
-                string message(buf, buf + wcslen(buf));
-                delete[] buf;
-                if (!message.empty()) {
-                    SetWindowText(hEditMessage, L"");
-                    sendMessages(message);
-                    appendMessageToChat(get_myName() + ": " + message);
-                }
-            }
-            break;
         }
-        case WM_SIZE: {
-            int width = LOWORD(lParam);
-            int height = HIWORD(lParam);
-            ResizeControls(hwnd, width, height);
-            break;
-        }
-        case WM_DESTROY: {
-            PostQuitMessage(0);
-            break;
-        }
-        case WM_KILLFOCUS: {
-            if ((HWND)wParam == hEditChat)
-                SetFocus(hwnd);
-            break;
-        }
+        break;
+    }
+    case WM_SIZE: {
+        int width = LOWORD(lParam);
+        int height = HIWORD(lParam);
+        ResizeControls(hwnd, width, height);
+        break;
+    }
+    case WM_DESTROY: {
+        PostQuitMessage(0);
+        break;
+    }
+    case WM_KILLFOCUS: {
+        if ((HWND)wParam == hEditChat)
+            SetFocus(hwnd);
+        break;
+    }
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
@@ -314,7 +314,7 @@ bool startServer() {
     return true;
 }
 
-bool startClient(const string& serverIP) {
+bool startClient(const wstring& serverIP) {
     WSADATA wsaData;
     struct sockaddr_in serv_addr;
 
@@ -332,7 +332,7 @@ bool startClient(const string& serverIP) {
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
-    if (inet_pton(AF_INET, serverIP.c_str(), &serv_addr.sin_addr) <= 0) {
+    if (InetPton(AF_INET, serverIP.c_str(), &serv_addr.sin_addr) <= 0) {
         MessageBox(NULL, L"Invalid address", L"Error", MB_OK);
         closesocket(sock);
         WSACleanup();
@@ -352,56 +352,55 @@ bool startClient(const string& serverIP) {
 }
 
 void receiveMessages(SOCKET sock) {
-    char buffer[BUFFER_SIZE] = { 0 };
+    wchar_t buffer[BUFFER_SIZE] = { 0 };
     while (true) {
-        int bytesReceived = recv(sock, buffer, BUFFER_SIZE - 1, 0);
-        if (bytesReceived <= 0) break;
-        buffer[bytesReceived] = '\0';
-        appendMessageToChat(get_hisName() + ": " + string(buffer));
+        int bytesReceived = recv(sock, (char*)buffer, BUFFER_SIZE * sizeof(wchar_t) - sizeof(wchar_t), 0);
+        buffer[bytesReceived / sizeof(wchar_t)] = L'\0';
+        appendMessageToChat(get_hisName() + L": " + wstring(buffer));
     }
 }
 
-void sendMessages(const string& message) {
+void sendMessages(const wstring& message) {
     if (!message.empty() && sock != INVALID_SOCKET)
-        send(sock, message.c_str(), message.size(), 0);
+        send(sock, (char*)message.c_str(), message.size() * sizeof(wchar_t), 0);
 }
 
-void appendMessageToChat(const string& message) {
+void appendMessageToChat(const wstring& message) {
     int len = GetWindowTextLength(hEditChat) + 1;
     wchar_t* buf = new wchar_t[len + message.size() + 3]; // +3 for "\r\n" and null terminator
     GetWindowText(hEditChat, buf, len);
     wcscat_s(buf, len + message.size() + 3, L"\r\n");
-    wcscat_s(buf, len + message.size() + 3, wstring(message.begin(), message.end()).c_str());
+    wcscat_s(buf, len + message.size() + 3, message.c_str());
     SetWindowText(hEditChat, buf);
     delete[] buf;
 
     SendMessage(hEditChat, WM_VSCROLL, SB_BOTTOM, 0);
 }
 
-void sendName(string name) {
+void sendName(wstring name) {
     if (!name.empty() && sock != INVALID_SOCKET)
-        send(sock, name.c_str(), name.size(), 0);
+        send(sock, (char*)name.c_str(), name.size() * sizeof(wchar_t), 0);
 }
 
 void receiveName(SOCKET sock) {
-    char buffer[BUFFER_SIZE] = { 0 };
-    int bytesReceived = recv(sock, buffer, BUFFER_SIZE - 1, 0);
-    buffer[bytesReceived] = '\0';
-    set_hisName(string(buffer));
+    wchar_t buffer[BUFFER_SIZE] = { 0 };
+    int bytesReceived = recv(sock, (char*)buffer, BUFFER_SIZE * sizeof(wchar_t) - sizeof(wchar_t), 0);
+    buffer[bytesReceived / sizeof(wchar_t)] = L'\0';
+    set_hisName(wstring(buffer));
 }
 
-void set_myName(string name) {
+void set_myName(wstring name) {
     myName = name;
 }
 
-string get_myName() {
+wstring get_myName() {
     return myName;
 }
 
-void set_hisName(string name) {
+void set_hisName(wstring name) {
     hisName = name;
 }
 
-string get_hisName() {
+wstring get_hisName() {
     return hisName;
 }
