@@ -22,7 +22,7 @@ using namespace std;
 #define IDC_MAIN_WAIT 108
 #define WM_START_WAIT WM_USER + 1
 #define WM_STOP_WAIT WM_USER + 2
-
+#define WM_DISCONNECT WM_USER + 3
 
 HWND hEditIP;
 HWND hButtonConnect;
@@ -33,40 +33,42 @@ HWND hEditChat;
 HWND hEditName;
 HWND hWait;
 HWND hwnd;
-SOCKET sock = INVALID_SOCKET;
 
 //LOGIC FUNC
 void startServer();
-void stopServer();
+void stopConnection();
 void startClient(const wstring& serverIP);
-void receiveMessages(SOCKET sock);
+void receiveMessages();
 void sendMessages(const wstring& message);
 void appendMessageToChat(const wstring& message);
-void sendName(wstring name);
-wstring get_myName();
-void set_myName(wstring name);
-wstring get_hisName();
-void set_hisName(wstring name);
-void receiveName(SOCKET sock);
+void sendName();
+void receiveName();
 wstring myName;
 wstring hisName;
 void connect();
 void reset();
+void setName();
 
 //VAR
-bool waiting;
+bool waiting = false;
 bool serverStarted = false;
+bool connected = false;
 UINT_PTR timerId = 0;
 wstring waitText = L"Waiting for connections";
 int dotCount = 0;
 HINSTANCE hInst;
 int cmd;
-SOCKET server_fd;
+SOCKET sock = INVALID_SOCKET;
+SOCKET server_fd = INVALID_SOCKET;
+int width = 520;
+int height = 300;
+
 
 //INTERFACE
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WaitingWindowProc(HWND, UINT, WPARAM, LPARAM);
 void CreateInterface(HINSTANCE hInstance, int nCmdShow);
+void ShowEnterScreen();
 void ShowChatInterface();
 void ResizeControls(HWND hwnd, int width, int height);
 void StartWaiting();
