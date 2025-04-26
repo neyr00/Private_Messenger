@@ -1,51 +1,5 @@
 ﻿#include <iostream>
-#include <string>
-#include <thread>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <windows.h>
-
-#pragma comment(lib, "ws2_32.lib")
-
-using namespace std;
-
-#define PORT 3826
-#define BUFFER_SIZE 1024
-#define IDC_MAIN_EDIT_IP 101
-#define IDC_MAIN_BUTTON_CONNECT 102
-#define IDC_MAIN_EDIT_MESSAGE 103
-#define IDC_MAIN_BUTTON_SEND 104
-#define IDC_MAIN_EDIT_CHAT 105
-#define IDC_MAIN_BUTTON_SERVER 106
-#define IDC_MAIN_EDIT_NAME 107
-
-HWND hEditIP;
-HWND hButtonConnect;
-HWND hButtonServer;
-HWND hEditMessage;
-HWND hButtonSend;
-HWND hEditChat;
-HWND hEditName;
-SOCKET sock = INVALID_SOCKET;
-
-bool startServer();
-bool startClient(const wstring& serverIP);
-void receiveMessages(SOCKET sock);
-void sendMessages(const wstring& message);
-void appendMessageToChat(const wstring& message);
-void sendName(wstring name);
-wstring get_myName();
-void set_myName(wstring name);
-wstring get_hisName();
-void set_hisName(wstring name);
-void receiveName(SOCKET sock);
-wstring myName;
-wstring hisName;
-
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-void CreateInterface(HINSTANCE hInstance, int nCmdShow);
-void ShowChatInterface();
-void ResizeControls(HWND hwnd, int width, int height);
+#include "header.h"
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
     CreateInterface(hInstance, nCmdShow);
@@ -60,6 +14,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 }
 
 void CreateInterface(HINSTANCE hInstance, int nCmdShow) {
+    hInst = hInstance;
+    cmd = nCmdShow;
     const wchar_t CLASS_NAME[] = L"Messenger";
 
     WNDCLASS wc = { };
@@ -71,7 +27,7 @@ void CreateInterface(HINSTANCE hInstance, int nCmdShow) {
 
     RegisterClass(&wc);
 
-    HWND hwnd = CreateWindowEx(
+    hwnd = CreateWindowEx(
         0,
         CLASS_NAME,
         L"Private Messenger",
@@ -137,7 +93,6 @@ void CreateInterface(HINSTANCE hInstance, int nCmdShow) {
 }
 
 void ShowChatInterface() {
-    HWND hwnd = GetParent(hEditIP);
 
     DestroyWindow(hEditIP);
     DestroyWindow(hButtonConnect);
@@ -181,6 +136,45 @@ void ShowChatInterface() {
     );
 }
 
+void StartWaiting() {
+    dotCount = 0;
+    waiting = true;
+    
+    EnableWindow(hEditIP, FALSE);
+    EnableWindow(hEditName, FALSE);
+    EnableWindow(hButtonConnect, FALSE);
+    SetWindowText(hButtonServer, L"Stop server");
+    hWait = CreateWindowEx(
+        0,
+        L"STATIC",
+        waitText.c_str(),
+        WS_CHILD | WS_VISIBLE,
+        140, 100, 180, 20,
+        hwnd,
+        (HMENU)IDC_MAIN_WAIT,
+        GetModuleHandle(NULL),
+        NULL
+    );
+
+    timerId = SetTimer(hwnd, 1, 500, NULL);
+}
+
+void StopWaiting() {
+    waiting = false;
+    EnableWindow(hEditIP, true);
+    EnableWindow(hEditName, true);
+    EnableWindow(hButtonConnect, true);
+    SetWindowText(hButtonServer, L"Start server");
+    if (timerId != 0) {
+        KillTimer(hwnd, timerId);
+        timerId = 0;
+    }
+    if (hWait) {
+        DestroyWindow(hWait);
+        hWait = NULL;
+    }
+}
+
 void ResizeControls(HWND hwnd, int width, int height) {
     if (hEditChat)
         MoveWindow(hEditChat, 10, 10, width - 20, height - 60, TRUE);
@@ -210,24 +204,28 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 set_myName(my_name);
             delete[] buf;
 
-            //thread(startClient, serverIP).detach();
-            if (startClient(serverIP))
-                ShowChatInterface();
+            startClient(serverIP);
         }
         else if (LOWORD(wParam) == IDC_MAIN_BUTTON_SERVER) {
-            int len = GetWindowTextLength(hEditName) + 1;
-            wchar_t* buf = new wchar_t[len];
-            GetWindowText(hEditName, buf, len);
-            wstring my_name(buf);
-            if (my_name.empty())
-                set_myName(L"anonym");
-            else
-                set_myName(my_name);
-            delete[] buf;
+            if (serverStarted) {
+                //stopServer();
+                serverStarted = false;
+                StopWaiting();
+            }
+            else {
+                int len = GetWindowTextLength(hEditName) + 1;
+                wchar_t* buf = new wchar_t[len];
+                GetWindowText(hEditName, buf, len);
+                wstring my_name(buf);
+                if (my_name.empty())
+                    set_myName(L"anonym");
+                else
+                    set_myName(my_name);
+                delete[] buf;
 
-            //thread(startServer).detach();
-            if (startServer())
-                ShowChatInterface();
+                StartWaiting();
+                thread(startServer).detach();
+            }
         }
         else if (LOWORD(wParam) == IDC_MAIN_BUTTON_SEND) {
             int len = GetWindowTextLength(hEditMessage) + 1;
@@ -241,6 +239,23 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 appendMessageToChat(get_myName() + L": " + message);
             }
         }
+        break;
+    }
+    case WM_TIMER: {
+        if (waiting) {
+            dotCount = (dotCount + 1) % 4;
+            wstring newText = waitText + wstring(dotCount, L'.');
+            SetWindowText(hWait, newText.c_str());
+        }
+        break;
+    }
+    case WM_START_WAIT: {
+        StartWaiting();
+        break;
+    }
+    case WM_STOP_WAIT: {
+        StopWaiting();
+        connect();
         break;
     }
     case WM_SIZE: {
@@ -262,22 +277,23 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-bool startServer() {
+void startServer() {
+    serverStarted = true;
     WSADATA wsaData;
-    SOCKET server_fd, new_socket;
     struct sockaddr_in address;
     int addrlen = sizeof(address);
 
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         MessageBox(NULL, L"WSAStartup failed", L"Error", MB_OK);
-        return false;
+        //stopServer();
+        return;
     }
 
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd == INVALID_SOCKET) {
         MessageBox(NULL, L"Socket creation failed", L"Error", MB_OK);
-        WSACleanup();
-        return false;
+        //stopServer();
+        return;
     }
 
     address.sin_family = AF_INET;
@@ -286,48 +302,45 @@ bool startServer() {
 
     if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) == SOCKET_ERROR) {
         MessageBox(NULL, L"Bind failed", L"Error", MB_OK);
-        closesocket(server_fd);
-        WSACleanup();
-        return false;
+        //stopServer();
+        return;
     }
 
     if (listen(server_fd, 1) == SOCKET_ERROR) {
         MessageBox(NULL, L"Listen failed", L"Error", MB_OK);
-        closesocket(server_fd);
-        WSACleanup();
-        return false;
+        //stopServer();
+        return;
     }
 
-    new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
-    if (new_socket == INVALID_SOCKET) {
+    sock = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
+    if (sock == INVALID_SOCKET) {
         MessageBox(NULL, L"Accept failed", L"Error", MB_OK);
-        closesocket(server_fd);
-        WSACleanup();
-        return false;
+        //stopServer();
+        return;
     }
-
-    sock = new_socket;
-
-    sendName(get_myName());
-    receiveName(sock);
-    thread(receiveMessages, new_socket).detach();
-    return true;
+    PostMessage(hwnd, WM_STOP_WAIT, 0, 0);
+    ExitThread(0);
 }
-
-bool startClient(const wstring& serverIP) {
+void stopServer() {
+    closesocket(server_fd);
+    WSACleanup();
+    PostMessage(hwnd, WM_STOP_WAIT, 0, 0);
+    serverStarted = false;
+}
+void startClient(const wstring& serverIP) {
     WSADATA wsaData;
     struct sockaddr_in serv_addr;
 
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         MessageBox(NULL, L"WSAStartup failed", L"Error", MB_OK);
-        return false;
+        return;
     }
 
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock == INVALID_SOCKET) {
         MessageBox(NULL, L"Socket creation failed", L"Error", MB_OK);
         WSACleanup();
-        return false;
+        return;
     }
 
     serv_addr.sin_family = AF_INET;
@@ -336,25 +349,26 @@ bool startClient(const wstring& serverIP) {
         MessageBox(NULL, L"Invalid address", L"Error", MB_OK);
         closesocket(sock);
         WSACleanup();
-        return false;
+        return;
     }
 
     if (connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == SOCKET_ERROR) {
         MessageBox(NULL, L"Connection failed", L"Error", MB_OK);
         closesocket(sock);
         WSACleanup();
-        return false;
+        return;
     }
-    sendName(get_myName());
-    receiveName(sock);
-    thread(receiveMessages, sock).detach();
-    return true;
+    connect();
 }
 
 void receiveMessages(SOCKET sock) {
     wchar_t buffer[BUFFER_SIZE] = { 0 };
     while (true) {
         int bytesReceived = recv(sock, (char*)buffer, BUFFER_SIZE * sizeof(wchar_t) - sizeof(wchar_t), 0);
+        if (bytesReceived == SOCKET_ERROR || bytesReceived == 0) {
+            reset();
+            break;
+        }
         buffer[bytesReceived / sizeof(wchar_t)] = L'\0';
         appendMessageToChat(get_hisName() + L": " + wstring(buffer));
     }
@@ -403,4 +417,26 @@ void set_hisName(wstring name) {
 
 wstring get_hisName() {
     return hisName;
+}
+
+void connect() {
+    sendName(get_myName());
+    receiveName(sock);
+    thread(receiveMessages, sock).detach();
+    ShowChatInterface();
+}
+
+
+void reset() {
+    DestroyWindow(hEditChat);
+    DestroyWindow(hEditMessage);
+    DestroyWindow(hButtonSend);
+
+    CreateInterface(hInst, cmd);
+
+    if (sock != INVALID_SOCKET) {
+        closesocket(sock);
+        sock = INVALID_SOCKET;
+    }
+    WSACleanup();
 }
