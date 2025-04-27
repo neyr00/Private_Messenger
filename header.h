@@ -80,5 +80,3 @@ void StopWaiting();
 HFONT CreateMyFont(int size);
 
 #endif
-
-//если с сервера выйти на клиенте баг????????

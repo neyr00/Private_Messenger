@@ -159,7 +159,7 @@ void ShowChatInterface() {
         0,
         L"EDIT",
         L"",
-        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL | ES_READONLY | ES_MULTILINE | WS_VSCROLL,
+        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOVSCROLL | ES_READONLY | ES_MULTILINE | WS_VSCROLL,
         10, 10, width - 20, height - 60,
         hwnd,
         (HMENU)IDC_MAIN_EDIT_CHAT,
