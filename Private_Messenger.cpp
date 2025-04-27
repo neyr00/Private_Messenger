@@ -1,6 +1,25 @@
 ﻿#include <iostream>
 #include "header.h"
 
+HFONT CreateMyFont(int size) {
+    return CreateFont(
+        size,                        // Высота шрифта
+        0,                           // Ширина шрифта
+        0,                           // Угол наклона
+        0,                           // Ориентация базиса
+        FW_NORMAL,                   // Толщина шрифта
+        FALSE,                       // Курсив
+        FALSE,                       // Подчеркивание
+        FALSE,                       // Перечеркивание
+        DEFAULT_CHARSET,             // Набор символов
+        OUT_DEFAULT_PRECIS,          // Точность вывода
+        CLIP_DEFAULT_PRECIS,         // Точность отсечения
+        DEFAULT_QUALITY,             // Качество вывода
+        DEFAULT_PITCH | FF_SWISS,    // Семейство и шаг
+        L"Roboto"                    // Имя шрифта
+    );
+}
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
     CreateInterface(hInstance, nCmdShow);
 
@@ -48,12 +67,25 @@ void CreateInterface(HINSTANCE hInstance, int nCmdShow) {
 }
 
 void ShowEnterScreen() {
+    HFONT hFont = CreateMyFont(20);
+    hIP = CreateWindowEx(
+        0,
+        L"STATIC",
+        L"IP",
+        WS_CHILD | WS_VISIBLE,
+        10, 10, 25, 20,
+        hwnd,
+        (HMENU)IDC_MAIN_IP,
+        hInst,
+        NULL
+    );
+    SendMessage(hIP, WM_SETFONT, (WPARAM)hFont, TRUE);
     hEditIP = CreateWindowEx(
         0,
         L"EDIT",
         L"",
         WS_CHILD | WS_VISIBLE | WS_BORDER,
-        10, 10, width - 220, 30,
+        65, 10, width - 285, 20,
         hwnd,
         (HMENU)IDC_MAIN_EDIT_IP,
         hInst,
@@ -62,12 +94,24 @@ void ShowEnterScreen() {
     SetWindowLongPtr(hEditIP, GWLP_USERDATA, (LONG_PTR)SetWindowLongPtr(hEditIP, GWLP_WNDPROC, (LONG_PTR)EditSubclassProc));
     SendMessage(hEditIP, EM_LIMITTEXT, 15, 0);
 
+    hName = CreateWindowEx(
+        0,
+        L"STATIC",
+        L"NAME",
+        WS_CHILD | WS_VISIBLE,
+        10, 40, 50, 20,
+        hwnd,
+        (HMENU)IDC_MAIN_NAME,
+        hInst,
+        NULL
+    );
+    SendMessage(hName, WM_SETFONT, (WPARAM)hFont, TRUE);
     hEditName = CreateWindowEx(
         0,
         L"EDIT",
         L"",
         WS_CHILD | WS_VISIBLE | WS_BORDER,
-        10, 50, width - 220, 30,
+        65, 40, width - 285, 20,
         hwnd,
         (HMENU)IDC_MAIN_EDIT_NAME,
         hInst,
@@ -81,31 +125,35 @@ void ShowEnterScreen() {
         L"BUTTON",
         L"Connect",
         WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        width - 200, 10, 80, 30,
+        width - 200, 10, 80, 50,
         hwnd,
         (HMENU)IDC_MAIN_BUTTON_CONNECT,
         hInst,
         NULL
     );
+    SendMessage(hButtonConnect, WM_SETFONT, (WPARAM)hFont, TRUE);
     hButtonServer = CreateWindowEx(
         0,
         L"BUTTON",
         L"Start server",
         WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        width - 110, 10, 90, 30,
+        width - 110, 10, 100, 50,
         hwnd,
         (HMENU)IDC_MAIN_BUTTON_SERVER,
         hInst,
         NULL
     );
+    SendMessage(hButtonServer, WM_SETFONT, (WPARAM)hFont, TRUE);
 }
 
 void ShowChatInterface() {
 
+    DestroyWindow(hIP);
     DestroyWindow(hEditIP);
+    DestroyWindow(hName);
+    DestroyWindow(hEditName);
     DestroyWindow(hButtonConnect);
     DestroyWindow(hButtonServer);
-    DestroyWindow(hEditName);
 
     hEditChat = CreateWindowEx(
         0,
@@ -161,12 +209,13 @@ void StartWaiting() {
         L"STATIC",
         waitText.c_str(),
         WS_CHILD | WS_VISIBLE,
-        width/2 - 100, height/2, 180, 20,
+        width/2 - 100, height/2, 200, 20,
         hwnd,
         (HMENU)IDC_MAIN_WAIT,
-        GetModuleHandle(NULL),
+        hInst,
         NULL
     );
+    SendMessage(hWait, WM_SETFONT, (WPARAM)CreateMyFont(20), TRUE);
 
     timerId = SetTimer(hwnd, 1, 500, NULL);
 }
@@ -191,6 +240,15 @@ void StopWaiting() {
 }
 
 void ResizeControls(HWND hwnd, int width, int height) {
+    if (hEditIP)
+        MoveWindow(hEditIP, 65, 10, width - 285, 20, TRUE);
+    if (hEditName)
+        MoveWindow(hEditName, 65, 40, width - 285, 20, TRUE);
+    if (hButtonConnect)
+        MoveWindow(hButtonConnect, width - 200, 10, 80, 50, TRUE);
+    if (hButtonServer)
+        MoveWindow(hButtonServer, width - 110, 10, 100, 50, TRUE);
+
     if (hEditChat)
         MoveWindow(hEditChat, 10, 10, width - 20, height - 60, TRUE);
     if (hEditMessage)
@@ -198,17 +256,8 @@ void ResizeControls(HWND hwnd, int width, int height) {
     if (hButtonSend)
         MoveWindow(hButtonSend, width - 90, height - 40, 80, 30, TRUE);
 
-    if (hEditIP)
-        MoveWindow(hEditIP, 10, 10, width - 220, 30, TRUE);
-    if (hEditName)
-        MoveWindow(hEditName, 10, 50, width - 220, 30, TRUE);
-    if (hButtonConnect)
-        MoveWindow(hButtonConnect, width - 200, 10, 80, 30, TRUE);
-    if (hButtonServer)
-        MoveWindow(hButtonServer, width - 110, 10, 90, 30, TRUE);
-
     if (hWait)
-        MoveWindow(hWait, width / 2 - 100, height / 2, 180, 20, TRUE);
+        MoveWindow(hWait, width / 2 - 100, height / 2, 200, 20, TRUE);
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -260,6 +309,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         }
         break;
     }
+    break;
     case WM_TIMER: {
         if (waiting) {
             dotCount = (dotCount + 1) % 4;
@@ -301,13 +351,23 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     }
     case WM_GETMINMAXINFO:    {
         MINMAXINFO* mmi = (MINMAXINFO*)lParam;
-        mmi->ptMinTrackSize.x = 360; 
+        mmi->ptMinTrackSize.x = 440; 
         mmi->ptMinTrackSize.y = 140; 
         return 0;
+    }
+    case WM_CTLCOLORSTATIC: {
+        if ((HWND)lParam == hIP || (HWND)lParam == hName) {
+            HDC hdcStatic = (HDC)wParam;
+            SetTextColor(hdcStatic, RGB(0, 0, 0)); // Установить цвет текста (черный)
+            SetBkColor(hdcStatic, RGB(255, 255, 255)); // Установить цвет фона (белый)
+            return (LRESULT)GetStockObject(WHITE_BRUSH); // Вернуть белую кисть
+        }
+        break;
     }
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
+
 LRESULT CALLBACK EditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
     case WM_KEYDOWN: {
@@ -315,7 +375,10 @@ LRESULT CALLBACK EditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
             if (GetFocus() == hEditIP)
                 SendMessage(GetParent(hWnd), WM_COMMAND, MAKEWPARAM(IDC_MAIN_BUTTON_CONNECT, BN_CLICKED), (LPARAM)hButtonConnect);
             else if (GetFocus() == hEditName)
-                SendMessage(GetParent(hWnd), WM_COMMAND, MAKEWPARAM(IDC_MAIN_BUTTON_SERVER, BN_CLICKED), (LPARAM)hButtonServer);
+                if (GetWindowTextLength(hEditIP))
+                    SendMessage(GetParent(hWnd), WM_COMMAND, MAKEWPARAM(IDC_MAIN_BUTTON_CONNECT, BN_CLICKED), (LPARAM)hButtonConnect);
+                else
+                    SendMessage(GetParent(hWnd), WM_COMMAND, MAKEWPARAM(IDC_MAIN_BUTTON_SERVER, BN_CLICKED), (LPARAM)hButtonServer);
             else if (GetFocus() == hEditMessage)
                 SendMessage(GetParent(hWnd), WM_COMMAND, MAKEWPARAM(IDC_MAIN_BUTTON_SEND, BN_CLICKED), (LPARAM)hButtonSend);
         break;
@@ -344,6 +407,7 @@ LRESULT CALLBACK EditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
     }
     return CallWindowProc((WNDPROC)GetWindowLongPtr(hWnd, GWLP_USERDATA), hWnd, uMsg, wParam, lParam);
 }
+
 void startServer() {
     serverStarted = true;
     WSADATA wsaData;

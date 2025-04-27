@@ -20,11 +20,14 @@ using namespace std;
 #define IDC_MAIN_BUTTON_SERVER 106
 #define IDC_MAIN_EDIT_NAME 107
 #define IDC_MAIN_WAIT 108
+#define IDC_MAIN_IP 109
+#define IDC_MAIN_NAME 110
 #define WM_START_WAIT WM_USER + 1
 #define WM_STOP_WAIT WM_USER + 2
 #define WM_DISCONNECT WM_USER + 3
 
 HWND hEditIP;
+HWND hIP;
 HWND hButtonConnect;
 HWND hButtonServer;
 HWND hEditMessage;
@@ -32,6 +35,7 @@ HWND hButtonSend;
 HWND hEditChat;
 HWND hEditName;
 HWND hWait;
+HWND hName;
 HWND hwnd;
 
 //LOGIC FUNC
@@ -73,5 +77,8 @@ void ShowChatInterface();
 void ResizeControls(HWND hwnd, int width, int height);
 void StartWaiting();
 void StopWaiting();
+HFONT CreateMyFont(int size);
 
 #endif
+
+//если с сервера выйти на клиенте баг????????
