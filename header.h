@@ -6,6 +6,10 @@
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <commctrl.h>
+#include <random>
+#include <tuple>
+#include <vector>
+#include <cmath>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -25,6 +29,7 @@ using namespace std;
 #define WM_START_WAIT WM_USER + 1
 #define WM_STOP_WAIT WM_USER + 2
 #define WM_DISCONNECT WM_USER + 3
+using ll = long long;
 
 HWND hEditIP;
 HWND hIP;
@@ -44,13 +49,23 @@ void stopConnection();
 void startClient(const wstring& serverIP);
 void receiveMessages();
 void sendMessages(const wstring& message);
-void appendMessageToChat(const wstring& message);
+void addToChat(const wstring& message);
 void receiveName();
 wstring myName;
 wstring hisName;
 void connect();
 void reset();
 void setName();
+
+//RSA
+void rsa(ll& e, ll& d, ll& n);
+ll mod_pow(ll base, ll exponent, ll mod);
+vector<ll> encrypt(wstring message);
+wstring decrypt(const vector<ll>& encrypted);
+ll mod_inverse(ll a, ll m);
+ll gcd(ll a, ll b);
+ll e = 65537, d, n; // e,n - public; d,n - private
+ll e_his, n_his;
 
 //VAR
 bool waiting = false;
