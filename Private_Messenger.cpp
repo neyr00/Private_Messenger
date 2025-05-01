@@ -159,7 +159,7 @@ void ShowChatInterface() {
         WS_EX_CLIENTEDGE,
         L"RichEdit50W",
         L"",
-        WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | ES_WANTRETURN,
+        WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL,
         10, 10, width - 20, height - 60,
         hwnd,
         (HMENU)IDC_MAIN_EDIT_CHAT,
@@ -168,16 +168,17 @@ void ShowChatInterface() {
     );
     SendMessage(hEditChat, WM_SETFONT, (WPARAM)hFont, TRUE);
     hEditMessage = CreateWindowEx(
-        0,
+        WS_EX_CLIENTEDGE,
         L"EDIT",
         L"",
-        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+        WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL,
         10, height - 40, width - 110, 30,
         hwnd,
         (HMENU)IDC_MAIN_EDIT_MESSAGE,
         hInst,
         NULL
     );
+    SendMessage(hEditMessage, WM_SETFONT, (WPARAM)hFont, TRUE);
     SetWindowLongPtr(hEditMessage, GWLP_USERDATA, (LONG_PTR)SetWindowLongPtr(hEditMessage, GWLP_WNDPROC, (LONG_PTR)EditSubclassProc));
 
     hButtonSend = CreateWindowEx(
@@ -239,7 +240,7 @@ void StopWaiting() {
     }
 }
 
-void ResizeControls(HWND hwnd, int width, int height) {
+void ResizeControls() {
     if (hEditIP)
         MoveWindow(hEditIP, 65, 10, width - 285, 20, TRUE);
     if (hEditName)
@@ -249,17 +250,44 @@ void ResizeControls(HWND hwnd, int width, int height) {
     if (hButtonServer)
         MoveWindow(hButtonServer, width - 110, 10, 100, 50, TRUE);
 
-    if (hEditChat)
+    if (hEditChat) {
         MoveWindow(hEditChat, 10, 10, width - 20, height - 60, TRUE);
+        SendMessage(hEditChat, WM_VSCROLL, SB_BOTTOM, 0);
+    }
+
     if (hEditMessage)
-        MoveWindow(hEditMessage, 10, height - 40, width - 110, 30, TRUE);
+        AdjustMessageControlHeight();
+
     if (hButtonSend)
         MoveWindow(hButtonSend, width - 90, height - 40, 80, 30, TRUE);
 
     if (hWait)
         MoveWindow(hWait, width / 2 - 100, height / 2, 200, 20, TRUE);
 }
+void AdjustMessageControlHeight() {
+    HDC hdc = GetDC(hEditMessage);
+    HFONT hOldFont = (HFONT)SelectObject(hdc, (HFONT)SendMessage(hEditMessage, WM_GETFONT, 0, 0));
 
+    TEXTMETRIC tm;
+    GetTextMetrics(hdc, &tm);
+    int lineHeight = tm.tmHeight;
+
+    int lineCount = (int)SendMessage(hEditMessage, EM_GETLINECOUNT, 0, 0);
+
+    SelectObject(hdc, hOldFont);
+    ReleaseDC(hEditMessage, hdc);
+
+    int newHeight = min(max(lineHeight * lineCount + 8, 30), height / 3);
+
+    SetMessageHeight(newHeight);
+}
+void SetMessageHeight(int newHeight) {
+    MoveWindow(hEditMessage, 10, height - newHeight - 10, width - 110, newHeight, TRUE);
+    MoveWindow(hEditChat, 10, 10, width - 20, height - newHeight - 30, TRUE);
+
+    SendMessage(hEditChat, WM_VSCROLL, SB_BOTTOM, 0);
+    SendMessage(hEditMessage, WM_VSCROLL, SB_BOTTOM, 0);
+}
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
     case WM_COMMAND: {
@@ -306,6 +334,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 sendMessages(message);
                 addToChat(myName, message, true);
             }
+            SetMessageHeight(30);
+            SendMessage(hEditChat, WM_VSCROLL, SB_BOTTOM, 0);
+        }
+        if (HIWORD(wParam) == EN_UPDATE && (HWND)lParam == hEditMessage) {
+            AdjustMessageControlHeight();
         }
         break;
     }
@@ -335,7 +368,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     case WM_SIZE: {
         width = LOWORD(lParam);
         height = HIWORD(lParam);
-        ResizeControls(hwnd, width, height);
+        ResizeControls();
         break;
     }
     case WM_DESTROY: {
@@ -430,7 +463,6 @@ void startServer() {
 
     sock = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
     if (sock == INVALID_SOCKET) {
-        //MessageBox(NULL, L"Accept failed", L"Error", MB_OK);
         stopConnection();
         return;
     }
@@ -488,6 +520,7 @@ void receiveMessages() {
         wstring message = decrypt(data);
         if (message == L"/disconnect") {
             PostMessage(hwnd, WM_DISCONNECT, 0, 0);
+            MessageBox(hwnd, (hisName + L" disconnected").c_str(), L"Info", MB_OK | MB_APPLMODAL);
             break;
         }
         addToChat(hisName, message, false);
@@ -660,7 +693,6 @@ void reset() {
     DestroyWindow(hButtonSend);
 
     ShowEnterScreen();
-    MessageBox(hwnd, (hisName + L" disconnected").c_str(), L"Info", MB_OK | MB_APPLMODAL);
 }
 
 void setName() {

@@ -93,9 +93,10 @@ LRESULT CALLBACK EditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 void CreateInterface(HINSTANCE hInstance, int nCmdShow);
 void ShowEnterScreen();
 void ShowChatInterface();
-void ResizeControls(HWND hwnd, int width, int height);
+void ResizeControls();
 void StartWaiting();
 void StopWaiting();
 HFONT CreateMyFont(int size);
-
+void AdjustMessageControlHeight();
+void SetMessageHeight(int newHeight);
 #endif
