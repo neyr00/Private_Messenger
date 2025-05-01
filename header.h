@@ -10,9 +10,10 @@
 #include <tuple>
 #include <vector>
 #include <cmath>
+#include <richedit.h>
+HMODULE hRichEditLib = LoadLibrary(TEXT("Msftedit.dll"));
 
 #pragma comment(lib, "ws2_32.lib")
-
 using namespace std;
 
 #define PORT 3826
@@ -49,7 +50,7 @@ void stopConnection();
 void startClient(const wstring& serverIP);
 void receiveMessages();
 void sendMessages(const wstring& message);
-void addToChat(const wstring& message);
+void addToChat(const wstring& sender, const wstring& message, bool isOut);
 void receiveName();
 wstring myName;
 wstring hisName;
@@ -66,6 +67,7 @@ ll mod_inverse(ll a, ll m);
 ll gcd(ll a, ll b);
 ll e = 65537, d, n; // e,n - public; d,n - private
 ll e_his, n_his;
+vector<ll> primes_arr(int a, int b);
 
 //VAR
 bool waiting = false;
@@ -80,8 +82,10 @@ HINSTANCE hInst;
 int cmd;
 SOCKET sock = INVALID_SOCKET;
 SOCKET server_fd = INVALID_SOCKET;
-int width = 520;
-int height = 300;
+int width = 800;
+int height = 600;
+bool lastWasOutgoing = false;
+bool firstMes = true;
 
 //INTERFACE
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
