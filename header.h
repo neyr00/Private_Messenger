@@ -17,20 +17,22 @@ HMODULE hRichEditLib = LoadLibrary(TEXT("Msftedit.dll"));
 using namespace std;
 
 #define PORT 3826
-#define IDC_MAIN_EDIT_IP 101
-#define IDC_MAIN_BUTTON_CONNECT 102
-#define IDC_MAIN_EDIT_MESSAGE 103
-#define IDC_MAIN_BUTTON_SEND 104
-#define IDC_MAIN_EDIT_CHAT 105
-#define IDC_MAIN_BUTTON_SERVER 106
-#define IDC_MAIN_EDIT_NAME 107
-#define IDC_MAIN_WAIT 108
-#define IDC_MAIN_IP 109
-#define IDC_MAIN_NAME 110
+#define IDC_EDIT_IP 101
+#define IDC_BUTTON_CONNECT 102
+#define IDC_EDIT_MESSAGE 103
+#define IDC_BUTTON_SEND 104
+#define IDC_EDIT_CHAT 105
+#define IDC_BUTTON_SERVER 106
+#define IDC_EDIT_NAME 107
+#define IDC_WAIT 108
+#define IDC_IP 109
+#define IDC_NAME 110
+#define IDC_HISNAME 111
+#define IDC_BUTTON_DISCONNECT 112
 #define WM_START_WAIT WM_USER + 1
 #define WM_STOP_WAIT WM_USER + 2
 #define WM_DISCONNECT WM_USER + 3
-using ll = long long;
+using uint = uint64_t;
 
 HWND hEditIP;
 HWND hIP;
@@ -43,6 +45,8 @@ HWND hEditName;
 HWND hWait;
 HWND hName;
 HWND hwnd;
+HWND hHisName;
+HWND hButtonDisconnect;
 
 //LOGIC FUNC
 void startServer();
@@ -52,22 +56,23 @@ void receiveMessages();
 void sendMessages(const wstring& message);
 void addToChat(const wstring& sender, const wstring& message, bool isOut);
 void receiveName();
-wstring myName;
-wstring hisName;
 void connect();
 void reset();
 void setName();
 
 //RSA
-void rsa(ll& e, ll& d, ll& n);
-ll mod_pow(ll base, ll exponent, ll mod);
-vector<ll> encrypt(wstring message);
-wstring decrypt(const vector<ll>& encrypted);
-ll mod_inverse(ll a, ll m);
-ll gcd(ll a, ll b);
-ll e = 65537, d, n; // e,n - public; d,n - private
-ll e_his, n_his;
-vector<ll> primes_arr(int a, int b);
+void rsa(uint& e, uint& d, uint& n);
+uint gcd(uint a, uint b);
+uint mod_inverse(uint a, uint m);
+uint mod_mul(uint a, uint b, uint mod);
+uint mod_pow(uint base, uint exp, uint mod);
+bool is_prime(uint n, int k = 40);
+uint generate_prime(int bits);
+vector<uint> encrypt(const wstring& message);
+wstring decrypt(const vector<uint>& encrypted);
+//RSA VAR
+uint e = 65537, d, n; // e,n - public; d,n - private
+uint e_his, n_his;
 
 //VAR
 bool waiting = false;
@@ -86,6 +91,8 @@ int width = 800;
 int height = 600;
 bool lastWasOutgoing = false;
 bool firstMes = true;
+wstring myName;
+wstring hisName;
 
 //INTERFACE
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

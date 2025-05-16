@@ -70,12 +70,12 @@ void ShowEnterScreen() {
     HFONT hFont = CreateMyFont(20);
     hIP = CreateWindowEx(
         0,
-        L"STATIC",
+        L"EDIT",
         L"IP",
-        WS_CHILD | WS_VISIBLE,
-        10, 10, 25, 20,
+        WS_CHILD | WS_VISIBLE | ES_READONLY,
+        10, 10, 50, 20,
         hwnd,
-        (HMENU)IDC_MAIN_IP,
+        (HMENU)IDC_IP,
         hInst,
         NULL
     );
@@ -87,7 +87,7 @@ void ShowEnterScreen() {
         WS_CHILD | WS_VISIBLE | WS_BORDER,
         65, 10, width - 285, 20,
         hwnd,
-        (HMENU)IDC_MAIN_EDIT_IP,
+        (HMENU)IDC_EDIT_IP,
         hInst,
         NULL
     );
@@ -96,12 +96,12 @@ void ShowEnterScreen() {
 
     hName = CreateWindowEx(
         0,
-        L"STATIC",
+        L"EDIT",
         L"NAME",
-        WS_CHILD | WS_VISIBLE,
+        WS_CHILD | WS_VISIBLE | ES_READONLY,
         10, 40, 50, 20,
         hwnd,
-        (HMENU)IDC_MAIN_NAME,
+        (HMENU)IDC_NAME,
         hInst,
         NULL
     );
@@ -113,7 +113,7 @@ void ShowEnterScreen() {
         WS_CHILD | WS_VISIBLE | WS_BORDER,
         65, 40, width - 285, 20,
         hwnd,
-        (HMENU)IDC_MAIN_EDIT_NAME,
+        (HMENU)IDC_EDIT_NAME,
         hInst,
         NULL
     );
@@ -127,7 +127,7 @@ void ShowEnterScreen() {
         WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
         width - 200, 10, 80, 50,
         hwnd,
-        (HMENU)IDC_MAIN_BUTTON_CONNECT,
+        (HMENU)IDC_BUTTON_CONNECT,
         hInst,
         NULL
     );
@@ -139,7 +139,7 @@ void ShowEnterScreen() {
         WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
         width - 110, 10, 100, 50,
         hwnd,
-        (HMENU)IDC_MAIN_BUTTON_SERVER,
+        (HMENU)IDC_BUTTON_SERVER,
         hInst,
         NULL
     );
@@ -147,22 +147,22 @@ void ShowEnterScreen() {
 }
 
 void ShowChatInterface() {
+    if (hIP) { DestroyWindow(hIP); hIP = NULL; }
+    if (hEditIP) { DestroyWindow(hEditIP); hEditIP = NULL; }
+    if (hName) { DestroyWindow(hName); hName = NULL; }
+    if (hEditName) { DestroyWindow(hEditName); hEditName = NULL; }
+    if (hButtonConnect) { DestroyWindow(hButtonConnect); hButtonConnect = NULL; }
+    if (hButtonServer) { DestroyWindow(hButtonServer); hButtonServer = NULL; }
 
-    DestroyWindow(hIP);
-    DestroyWindow(hEditIP);
-    DestroyWindow(hName);
-    DestroyWindow(hEditName);
-    DestroyWindow(hButtonConnect);
-    DestroyWindow(hButtonServer);
     HFONT hFont = CreateMyFont(20);
     hEditChat = CreateWindowEx(
         WS_EX_CLIENTEDGE,
         L"RichEdit50W",
         L"",
         WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL,
-        10, 10, width - 20, height - 60,
+        10, 50, width - 20, height - 100,
         hwnd,
-        (HMENU)IDC_MAIN_EDIT_CHAT,
+        (HMENU)IDC_EDIT_CHAT,
         hInst,
         NULL
     );
@@ -174,10 +174,11 @@ void ShowChatInterface() {
         WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL,
         10, height - 40, width - 110, 30,
         hwnd,
-        (HMENU)IDC_MAIN_EDIT_MESSAGE,
+        (HMENU)IDC_EDIT_MESSAGE,
         hInst,
         NULL
     );
+    SendMessage(hEditMessage, EM_LIMITTEXT, n_his, 0);
     SendMessage(hEditMessage, WM_SETFONT, (WPARAM)hFont, TRUE);
     SetWindowLongPtr(hEditMessage, GWLP_USERDATA, (LONG_PTR)SetWindowLongPtr(hEditMessage, GWLP_WNDPROC, (LONG_PTR)EditSubclassProc));
 
@@ -188,10 +189,33 @@ void ShowChatInterface() {
         WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
         width - 90, height - 40, 80, 30,
         hwnd,
-        (HMENU)IDC_MAIN_BUTTON_SEND,
+        (HMENU)IDC_BUTTON_SEND,
         hInst,
         NULL
     );
+    hButtonDisconnect = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"X",
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        width - 40, 10, 30, 30,
+        hwnd,
+        (HMENU)IDC_BUTTON_DISCONNECT,
+        hInst,
+        NULL
+    );
+    hHisName = CreateWindowEx(
+        0,
+        L"EDIT",
+        (L"Chat with: " + hisName).c_str(),
+        WS_CHILD | WS_VISIBLE | ES_READONLY | WS_BORDER,
+        10, 10, width - 50, 30,
+        hwnd,
+        (HMENU)IDC_HISNAME,
+        hInst,
+        NULL
+    );
+    SendMessage(hHisName, WM_SETFONT, (WPARAM)hFont, TRUE);
 }
 
 void StartWaiting() {
@@ -207,12 +231,12 @@ void StartWaiting() {
         EnableWindow(hButtonServer, false);
     hWait = CreateWindowEx(
         0,
-        L"STATIC",
+        L"EDIT",
         waitText.c_str(),
-        WS_CHILD | WS_VISIBLE,
+        WS_CHILD | WS_VISIBLE | ES_READONLY,
         width/2 - 100, height/2, 200, 20,
         hwnd,
-        (HMENU)IDC_MAIN_WAIT,
+        (HMENU)IDC_WAIT,
         hInst,
         NULL
     );
@@ -250,19 +274,16 @@ void ResizeControls() {
     if (hButtonServer)
         MoveWindow(hButtonServer, width - 110, 10, 100, 50, TRUE);
 
-    if (hEditChat) {
-        MoveWindow(hEditChat, 10, 10, width - 20, height - 60, TRUE);
-        SendMessage(hEditChat, WM_VSCROLL, SB_BOTTOM, 0);
-    }
-
     if (hEditMessage)
         AdjustMessageControlHeight();
-
     if (hButtonSend)
         MoveWindow(hButtonSend, width - 90, height - 40, 80, 30, TRUE);
-
     if (hWait)
         MoveWindow(hWait, width / 2 - 100, height / 2, 200, 20, TRUE);
+    if (hHisName)
+        MoveWindow(hHisName, 10, 10, width - 50, 30, TRUE);
+    if (hButtonDisconnect)
+        MoveWindow(hButtonDisconnect, width - 40, 10, 30, 30, TRUE);
 }
 void AdjustMessageControlHeight() {
     HDC hdc = GetDC(hEditMessage);
@@ -283,15 +304,14 @@ void AdjustMessageControlHeight() {
 }
 void SetMessageHeight(int newHeight) {
     MoveWindow(hEditMessage, 10, height - newHeight - 10, width - 110, newHeight, TRUE);
-    MoveWindow(hEditChat, 10, 10, width - 20, height - newHeight - 30, TRUE);
+    MoveWindow(hEditChat, 10, 50, width - 20, height - newHeight - 70, TRUE);
 
-    SendMessage(hEditChat, WM_VSCROLL, SB_BOTTOM, 0);
     SendMessage(hEditMessage, WM_VSCROLL, SB_BOTTOM, 0);
 }
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
     case WM_COMMAND: {
-        if (LOWORD(wParam) == IDC_MAIN_BUTTON_CONNECT) {
+        if (LOWORD(wParam) == IDC_BUTTON_CONNECT) {
             int len = GetWindowTextLength(hEditIP) + 1;
             wchar_t* buf = new wchar_t[len];
             GetWindowText(hEditIP, buf, len);
@@ -305,7 +325,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             thread clientThread(startClient, serverIP);
             clientThread.detach();
         }
-        else if (LOWORD(wParam) == IDC_MAIN_BUTTON_SERVER) {
+        else if (LOWORD(wParam) == IDC_BUTTON_SERVER) {
             if (serverStarted) {
                 stopConnection();
                 StopWaiting();
@@ -319,23 +339,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 serverThread.detach();
             }
         }
-        else if (LOWORD(wParam) == IDC_MAIN_BUTTON_SEND) {
+        else if (LOWORD(wParam) == IDC_BUTTON_SEND) {
             int len = GetWindowTextLength(hEditMessage) + 1;
             wchar_t* buf = new wchar_t[len];
             GetWindowText(hEditMessage, buf, len);
             wstring message(buf);
             delete[] buf;
             if (!message.empty()) {
-                if (message == L"/disconnect") {
-                    PostMessage(hwnd, WM_DISCONNECT, 0, 0);
-                    break;
-                }
                 SetWindowText(hEditMessage, L"");
                 sendMessages(message);
                 addToChat(myName, message, true);
             }
             SetMessageHeight(30);
             SendMessage(hEditChat, WM_VSCROLL, SB_BOTTOM, 0);
+        }
+        else if (LOWORD(wParam) == IDC_BUTTON_DISCONNECT) {
+            reset();
         }
         if (HIWORD(wParam) == EN_UPDATE && (HWND)lParam == hEditMessage) {
             AdjustMessageControlHeight();
@@ -385,7 +404,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     case WM_GETMINMAXINFO:    {
         MINMAXINFO* mmi = (MINMAXINFO*)lParam;
         mmi->ptMinTrackSize.x = 440; 
-        mmi->ptMinTrackSize.y = 140; 
+        mmi->ptMinTrackSize.y = 200; 
         return 0;
     }
     case WM_CTLCOLORSTATIC: {
@@ -406,14 +425,14 @@ LRESULT CALLBACK EditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
     case WM_KEYDOWN: {
         if (wParam == VK_RETURN)
             if (GetFocus() == hEditIP)
-                SendMessage(GetParent(hWnd), WM_COMMAND, MAKEWPARAM(IDC_MAIN_BUTTON_CONNECT, BN_CLICKED), (LPARAM)hButtonConnect);
+                SendMessage(GetParent(hWnd), WM_COMMAND, MAKEWPARAM(IDC_BUTTON_CONNECT, BN_CLICKED), (LPARAM)hButtonConnect);
             else if (GetFocus() == hEditName)
                 if (GetWindowTextLength(hEditIP))
-                    SendMessage(GetParent(hWnd), WM_COMMAND, MAKEWPARAM(IDC_MAIN_BUTTON_CONNECT, BN_CLICKED), (LPARAM)hButtonConnect);
+                    SendMessage(GetParent(hWnd), WM_COMMAND, MAKEWPARAM(IDC_BUTTON_CONNECT, BN_CLICKED), (LPARAM)hButtonConnect);
                 else
-                    SendMessage(GetParent(hWnd), WM_COMMAND, MAKEWPARAM(IDC_MAIN_BUTTON_SERVER, BN_CLICKED), (LPARAM)hButtonServer);
+                    SendMessage(GetParent(hWnd), WM_COMMAND, MAKEWPARAM(IDC_BUTTON_SERVER, BN_CLICKED), (LPARAM)hButtonServer);
             else if (GetFocus() == hEditMessage)
-                SendMessage(GetParent(hWnd), WM_COMMAND, MAKEWPARAM(IDC_MAIN_BUTTON_SEND, BN_CLICKED), (LPARAM)hButtonSend);
+                SendMessage(GetParent(hWnd), WM_COMMAND, MAKEWPARAM(IDC_BUTTON_SEND, BN_CLICKED), (LPARAM)hButtonSend);
         break;
     }
     case WM_CHAR: {
@@ -476,6 +495,7 @@ void startClient(const wstring& serverIP) {
 
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         MessageBox(hwnd, L"WSAStartup failed", L"Error", MB_OK);
+        stopConnection();
         return;
     }
 
@@ -504,24 +524,26 @@ void startClient(const wstring& serverIP) {
 }
 
 void receiveMessages() {
-    ll byteSize = 0;
-    while (true) {
+    uint byteSize = 0;
+    while (connected) {
         if (recv(sock, reinterpret_cast<char*>(&byteSize), sizeof(byteSize), 0) == 0) {
-            reset();
-            break;
-        }
-
-        ll count = byteSize / sizeof(ll);
-        vector<ll> data(count);
-        if (recv(sock, reinterpret_cast<char*>(data.data()), byteSize, 0) == 0) {
-            reset();
-            break;
-        }
-        wstring message = decrypt(data);
-        if (message == L"/disconnect") {
             PostMessage(hwnd, WM_DISCONNECT, 0, 0);
             MessageBox(hwnd, (hisName + L" disconnected").c_str(), L"Info", MB_OK | MB_APPLMODAL);
-            break;
+            return;
+        }
+
+        uint count = byteSize / sizeof(uint);
+        vector<uint> data(count);
+        if (recv(sock, reinterpret_cast<char*>(data.data()), byteSize, 0) == 0) {
+            PostMessage(hwnd, WM_DISCONNECT, 0, 0);
+            MessageBox(hwnd, (hisName + L" disconnected").c_str(), L"Info", MB_OK | MB_APPLMODAL);
+            return;
+        }
+        wstring message = decrypt(data);
+        if (!message.size()) {
+            PostMessage(hwnd, WM_DISCONNECT, 0, 0);
+            MessageBox(hwnd, (hisName + L" disconnected").c_str(), L"Info", MB_OK | MB_APPLMODAL);
+            return;
         }
         addToChat(hisName, message, false);
     }
@@ -529,8 +551,8 @@ void receiveMessages() {
 
 void sendMessages(const wstring& message) {
     if (!message.empty() && sock != INVALID_SOCKET) {
-        vector<ll> encrypt_message = encrypt(message);
-        ll byteSize = encrypt_message.size() * sizeof(ll);
+        vector<uint> encrypt_message = encrypt(message);
+        uint byteSize = encrypt_message.size() * sizeof(uint);
         send(sock, reinterpret_cast<const char*>(&byteSize), sizeof(byteSize), 0);
         send(sock, reinterpret_cast<const char*>(encrypt_message.data()), byteSize, 0);
     }
@@ -632,17 +654,16 @@ void addToChat(const wstring& sender, const wstring& message, bool isOut) {
     // Обновляем информацию о последнем отправителе
     lastWasOutgoing = isOut;
 
-    // Прокрутка вниз
     SendMessage(hEditChat, EM_SCROLL, SB_BOTTOM, 0);
 }
 void receiveName() {
-    ll byteSize = 0;
+    uint byteSize = 0;
     if (recv(sock, reinterpret_cast<char*>(&byteSize), sizeof(byteSize), 0) <= 0) {
         reset();
         return;
     }
-    ll count = byteSize / sizeof(ll);
-    vector<ll> data(count);
+    uint count = byteSize / sizeof(uint);
+    vector<uint> data(count);
     if (recv(sock, reinterpret_cast<char*>(data.data()), byteSize, 0) <= 0) {
         reset();
         return;
@@ -665,22 +686,37 @@ void connect() {
 
     thread(receiveMessages).detach();
     ShowChatInterface();
-    //addToChat(L"| Connected to " + hisName + L" |");
 }
 
 void stopConnection() {
-    if(connected)
-        sendMessages(L"/disconnect");
-    if (sock != INVALID_SOCKET)
-        closesocket(sock);
-    if (server_fd != INVALID_SOCKET)
-        closesocket(server_fd);
-    serverStarted = false;
     connected = false;
-    succesConnection = false;
-    lastWasOutgoing = false;
-    firstMes = false;
+    
+    if (sock != INVALID_SOCKET) {
+        shutdown(sock, SD_BOTH);
+        closesocket(sock);
+        sock = INVALID_SOCKET;
+    }
+    if (server_fd != INVALID_SOCKET) {
+        closesocket(server_fd);
+        server_fd = INVALID_SOCKET;
+    }
+    
     WSACleanup();
+    
+    serverStarted = false;
+    succesConnection = false;
+    isServerWait = false;
+    lastWasOutgoing = false;
+    firstMes = true;
+    
+    hisName.clear();
+    
+    e = 0;
+    d = 0;
+    n = 0;
+    e_his = 0;
+    n_his = 0;
+    
     if (waiting)
         PostMessage(hwnd, WM_STOP_WAIT, 0, 0);
 }
@@ -688,9 +724,17 @@ void stopConnection() {
 void reset() {
     stopConnection();
 
-    DestroyWindow(hEditChat);
-    DestroyWindow(hEditMessage);
-    DestroyWindow(hButtonSend);
+    if (hEditChat) { DestroyWindow(hEditChat); hEditChat = NULL; }
+    if (hEditMessage) { DestroyWindow(hEditMessage); hEditMessage = NULL; }
+    if (hButtonSend) { DestroyWindow(hButtonSend); hButtonSend = NULL; }
+    if (hButtonDisconnect) { DestroyWindow(hButtonDisconnect); hButtonDisconnect = NULL; }
+    if (hHisName) { DestroyWindow(hHisName); hHisName = NULL; }
+    if (hIP) { DestroyWindow(hIP); hIP = NULL; }
+    if (hEditIP) { DestroyWindow(hEditIP); hEditIP = NULL; }
+    if (hName) { DestroyWindow(hName); hName = NULL; }
+    if (hEditName) { DestroyWindow(hEditName); hEditName = NULL; }
+    if (hButtonConnect) { DestroyWindow(hButtonConnect); hButtonConnect = NULL; }
+    if (hButtonServer) { DestroyWindow(hButtonServer); hButtonServer = NULL; }
 
     ShowEnterScreen();
 }
@@ -707,89 +751,143 @@ void setName() {
     delete[] buf;
 }
 
-
-ll gcd(ll a, ll b) {
-    while (b != 0) {
-        ll temp = b;
-        b = a % b;
-        a = temp;
-    }
-    return a;
-}
-ll mod_inverse(ll a, ll m) {
-    ll m0 = m, t, q;
-    ll x0 = 0, x1 = 1;
-    if (m == 1)
-        return 0;
-    while (a > 1) {
-        q = a / m;
-        t = m, m = a % m, a = t;
-        t = x0, x0 = x1 - q * x0, x1 = t;
-    }
-    if (x1 < 0)
-        x1 += m0;
-    return x1;
-}   
-ll mod_pow(ll base, ll exponent, ll mod) {
-    ll result = 1;
-    while (exponent > 0) {
-        if (exponent % 2 == 1)
-            result = (result * base) % mod;
-        base = (base * base) % mod;
-        exponent = exponent >> 1;
-    }
-    return result;
-}
-void rsa(ll& e, ll& d, ll& n) {
-    random_device rd;
-    mt19937 gen(rd());
-
-    vector<ll> primes = primes_arr(10000, 50000);
-
-    uniform_int_distribution<> dis(0, primes.size() - 1);
-    uniform_int_distribution<> e_gen(primes.size()/2, primes.size() - 1);
-    ll p, q;
-    ll f;
-    
+//RSA
+void rsa(uint& e, uint& d, uint& n) {
+    uint p = generate_prime(30);
+    uint q, f;
     do {
-        p = primes[dis(gen)];
-        q = primes[dis(gen)];
-        e = primes[e_gen(gen)];
+        q = generate_prime(30);
+        e = generate_prime(30);
         f = (p - 1) * (q - 1);
     } while (p == q || gcd(e, f) != 1);
 
     n = p * q;
     d = mod_inverse(e, f);
 }
-vector<ll> primes_arr(int a, int b) {
-    vector<ll> primes;
-    vector<bool> is_prime(b + 1, true);  
-    is_prime[0] = is_prime[1] = false;   
+uint gcd(uint a, uint b) {
+    while (b) {
+        a %= b;
+        swap(a, b);
+    }
+    return a;
+}
+uint mod_inverse(uint a, uint m) {
+    long long x = 1, y = 0, x1 = 0, y1 = 1;
+    long long orig = m;
 
-    for (int p = 2; p * p <= b; p++)
-        if (is_prime[p])
-            for (int i = p * p; i <= b; i += p)
-                is_prime[i] = false;
-    for (int i = a; i <= b; i++)
-        if (is_prime[i])
-            primes.push_back(i);
-    return primes;
+    while (m) {
+        long long q = a / m;
+        tie(x, x1) = make_tuple(x1, x - q * x1);
+        tie(y, y1) = make_tuple(y1, y - q * y1);
+        tie(a, m) = make_tuple(m, a % m);
+    }
+
+    return x < 0 ? x + orig : x;
+}
+uint mod_mul(uint a, uint b, uint mod) {
+    uint result = 0;
+    a %= mod;
+    while (b) {
+        if (b & 1)
+            result = (result + a) % mod;
+        a = (a << 1) % mod;
+        b >>= 1;
+    }
+    return result;
+}
+uint mod_pow(uint base, uint exp, uint mod) {
+    uint result = 1;
+    base %= mod;
+    while (exp) {
+        if (exp & 1)
+            result = mod_mul(result, base, mod);
+        base = mod_mul(base, base, mod);
+        exp >>= 1;
+    }
+    return result;
+}
+bool is_prime(uint n, int k) {
+    if (n <= 3) return n > 1;
+    if (n % 2 == 0) return false;
+
+    uint d = n - 1;
+    int s = 0;
+    while (d % 2 == 0) {
+        d /= 2;
+        s++;
+    }
+
+    random_device rd;
+    mt19937_64 gen(rd());
+    uniform_int_distribution<uint> dis(2, n - 2);
+
+    for (int i = 0; i < k; i++) {
+        uint a = dis(gen);
+        uint x = mod_pow(a, d, n);
+
+        if (x == 1 || x == n - 1) continue;
+
+        for (int j = 0; j < s - 1 && x != n - 1; j++) {
+            x = mod_pow(x, 2, n);
+            if (x == 1) return false;
+        }
+
+        if (x != n - 1) return false;
+    }
+    return true;
+}
+uint generate_prime(int bits) {
+    random_device rd;
+    mt19937_64 gen(rd());
+    uniform_int_distribution<uint> dis(1ULL << (bits - 1), (1ULL << bits) - 1);
+
+    uint candidate;
+    do {
+        candidate = dis(gen) | 1;
+    } while (!is_prime(candidate));
+
+    return candidate;
 }
 
-vector<ll> encrypt(wstring message) {
-    vector<ll> encrypted;
-    for (wchar_t c : message) {
-        ll m = static_cast<ll>(c);
-        ll cipher = mod_pow(m, e_his, n_his);
-        encrypted.push_back(cipher);
+vector<uint> encrypt(const wstring& message) {
+    vector<uint> encrypted;
+    size_t block_chars = static_cast<size_t>(log2(n_his) / (CHAR_BIT * sizeof(wchar_t))) - 1;
+    if (block_chars == 0) block_chars = 1;
+
+    for (size_t i = 0; i < message.size(); i += block_chars) {
+        uint block_value = 0;
+        size_t chars_in_block = 0;
+        
+        for (size_t j = 0; j < block_chars && i + j < message.size(); j++) {
+            block_value = (block_value << (CHAR_BIT * sizeof(wchar_t))) | static_cast<uint>(message[i + j]);
+            chars_in_block++;
+        }
+        
+        block_value = (block_value << 8) | static_cast<uint>(chars_in_block);
+        encrypted.push_back(mod_pow(block_value, e_his, n_his));
     }
     return encrypted;
 }
-wstring decrypt(const vector<ll>& encrypted) {
+
+wstring decrypt(const vector<uint>& encrypted) {
     wstring decrypted;
-    for (ll cipher : encrypted) {
-        ll m = mod_pow(cipher, d, n);
-        decrypted += static_cast<wchar_t>(m);
+    size_t block_chars = static_cast<size_t>(log2(n) / (CHAR_BIT * sizeof(wchar_t))) - 1;
+    if (block_chars == 0) block_chars = 1;
+
+    for (uint cipher : encrypted) {
+        uint block_value = mod_pow(cipher, d, n);
+        
+        uint chars_in_block = block_value & 0xFF;
+        block_value >>= 8;
+        
+        wstring block;
+        for (size_t j = 0; j < chars_in_block; j++) {
+            wchar_t c = static_cast<wchar_t>(block_value & ((1ULL << (CHAR_BIT * sizeof(wchar_t))) - 1));
+            block.insert(0, 1, c);
+            block_value >>= (CHAR_BIT * sizeof(wchar_t));
+        }
+        
+        decrypted += block;
     }
     return decrypted;
 }
