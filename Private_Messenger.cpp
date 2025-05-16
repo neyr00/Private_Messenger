@@ -1,5 +1,4 @@
-﻿#include <iostream>
-#include "header.h"
+﻿#include "header.h"
 
 HFONT CreateMyFont(int size) {
     return CreateFont(
@@ -65,15 +64,16 @@ void CreateInterface(HINSTANCE hInstance, int nCmdShow) {
     ShowWindow(hwnd, nCmdShow);
     ShowEnterScreen();
 }
-
 void ShowEnterScreen() {
+    globalIP = getGlobalIP();
+    localIP = getLocalIP();
     HFONT hFont = CreateMyFont(20);
     hIP = CreateWindowEx(
         0,
         L"EDIT",
         L"IP",
         WS_CHILD | WS_VISIBLE | ES_READONLY,
-        10, 10, 50, 20,
+        5, 10, 50, 20,
         hwnd,
         (HMENU)IDC_IP,
         hInst,
@@ -99,7 +99,7 @@ void ShowEnterScreen() {
         L"EDIT",
         L"NAME",
         WS_CHILD | WS_VISIBLE | ES_READONLY,
-        10, 40, 50, 20,
+        5, 40, 50, 20,
         hwnd,
         (HMENU)IDC_NAME,
         hInst,
@@ -144,8 +144,79 @@ void ShowEnterScreen() {
         NULL
     );
     SendMessage(hButtonServer, WM_SETFONT, (WPARAM)hFont, TRUE);
+    hGlobalIPLabel = CreateWindowEx(
+        0,
+        L"EDIT",
+        L"Your GLOBAL IP",
+        WS_CHILD | WS_VISIBLE | ES_READONLY,
+        5, 70, 130, 20,
+        hwnd,
+        (HMENU)IDC_GLOBAL_IP_LABEL,
+        hInst,
+        NULL
+    );
+    SendMessage(hGlobalIPLabel, WM_SETFONT, (WPARAM)hFont, TRUE);
+    hLocalIPLabel = CreateWindowEx(
+        0,
+        L"EDIT",
+        L"Your LOCAL IP",
+        WS_CHILD | WS_VISIBLE | ES_READONLY,
+        5, 100, 130, 20,
+        hwnd,
+        (HMENU)IDC_LOCAL_IP_LABEL,
+        hInst,
+        NULL
+    );
+    SendMessage(hLocalIPLabel, WM_SETFONT, (WPARAM)hFont, TRUE);
+    hGlobalIP = CreateWindowEx(
+        0,
+        L"EDIT",
+        globalIP.c_str(),
+        WS_CHILD | WS_VISIBLE | ES_READONLY | WS_BORDER,
+        140, 70, 140, 25,
+        hwnd,
+        (HMENU)IDC_GLOBAL_IP,
+        hInst,
+        NULL
+    );
+    SendMessage(hGlobalIP, WM_SETFONT, (WPARAM)hFont, TRUE);
+    hLocalIP = CreateWindowEx(
+        0,
+        L"EDIT",
+        localIP.c_str(),
+        WS_CHILD | WS_VISIBLE | ES_READONLY | WS_BORDER,
+        140, 100, 140, 25,
+        hwnd,
+        (HMENU)IDC_LOCAL_IP,
+        hInst,
+        NULL
+    );
+    SendMessage(hLocalIP, WM_SETFONT, (WPARAM)hFont, TRUE);
+    hGlobalIPCopy = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"Copy",
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        285, 70, 50, 25,
+        hwnd,
+        (HMENU)IDC_GLOBAL_IP_COPY,
+        hInst,
+        NULL
+    );
+    SendMessage(hGlobalIPCopy, WM_SETFONT, (WPARAM)hFont, TRUE);
+    hLocalIPCopy = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"Copy",
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        285, 100, 50, 25,
+        hwnd,
+        (HMENU)IDC_LOCAL_IP_COPY,
+        hInst,
+        NULL
+    );
+    SendMessage(hLocalIPCopy, WM_SETFONT, (WPARAM)hFont, TRUE);
 }
-
 void ShowChatInterface() {
     if (hIP) { DestroyWindow(hIP); hIP = NULL; }
     if (hEditIP) { DestroyWindow(hEditIP); hEditIP = NULL; }
@@ -153,6 +224,12 @@ void ShowChatInterface() {
     if (hEditName) { DestroyWindow(hEditName); hEditName = NULL; }
     if (hButtonConnect) { DestroyWindow(hButtonConnect); hButtonConnect = NULL; }
     if (hButtonServer) { DestroyWindow(hButtonServer); hButtonServer = NULL; }
+    if (hLocalIPLabel) { DestroyWindow(hLocalIPLabel); hLocalIPLabel = NULL; }
+    if (hLocalIP) { DestroyWindow(hLocalIP); hLocalIP = NULL; }
+    if (hLocalIPCopy) { DestroyWindow(hLocalIPCopy); hLocalIPCopy = NULL; }
+    if (hGlobalIPLabel) { DestroyWindow(hGlobalIPLabel); hGlobalIPLabel = NULL; }
+    if (hGlobalIP) { DestroyWindow(hGlobalIP); hGlobalIP = NULL; }
+    if (hGlobalIPCopy) { DestroyWindow(hGlobalIPCopy); hGlobalIPCopy = NULL; }
 
     HFONT hFont = CreateMyFont(20);
     hEditChat = CreateWindowEx(
@@ -225,6 +302,8 @@ void StartWaiting() {
     EnableWindow(hEditIP, false);
     EnableWindow(hEditName, false);
     EnableWindow(hButtonConnect, false);
+    EnableWindow(hLocalIPCopy, false);
+    EnableWindow(hGlobalIPCopy, false);
     if (isServerWait)
         SetWindowText(hButtonServer, L"Stop server");
     else 
@@ -244,12 +323,13 @@ void StartWaiting() {
 
     timerId = SetTimer(hwnd, 1, 500, NULL);
 }
-
 void StopWaiting() {
     waiting = false;
     EnableWindow(hEditIP, true);
     EnableWindow(hEditName, true);
     EnableWindow(hButtonConnect, true);
+    EnableWindow(hLocalIPCopy, true);
+    EnableWindow(hGlobalIPCopy,true);
     if (isServerWait)
         SetWindowText(hButtonServer, L"Start server");
     else
@@ -324,6 +404,34 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             StartWaiting();
             thread clientThread(startClient, serverIP);
             clientThread.detach();
+        }
+        else if (LOWORD(wParam) == IDC_GLOBAL_IP_COPY) {
+            if (OpenClipboard(hwnd)) {
+                EmptyClipboard();
+                wstring globalIP = getGlobalIP();
+                HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, (globalIP.length() + 1) * sizeof(wchar_t));
+                if (hMem) {
+                    wchar_t* data = (wchar_t*)GlobalLock(hMem);
+                    wcscpy_s(data, globalIP.length() + 1, globalIP.c_str());
+                    GlobalUnlock(hMem);
+                    SetClipboardData(CF_UNICODETEXT, hMem);
+                }
+                CloseClipboard();
+            }
+        }
+        else if (LOWORD(wParam) == IDC_LOCAL_IP_COPY) {
+            if (OpenClipboard(hwnd)) {
+                EmptyClipboard();
+                wstring localIP = getLocalIP();
+                HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, (localIP.length() + 1) * sizeof(wchar_t));
+                if (hMem) {
+                    wchar_t* data = (wchar_t*)GlobalLock(hMem);
+                    wcscpy_s(data, localIP.length() + 1, localIP.c_str());
+                    GlobalUnlock(hMem);
+                    SetClipboardData(CF_UNICODETEXT, hMem);
+                }
+                CloseClipboard();
+            }
         }
         else if (LOWORD(wParam) == IDC_BUTTON_SERVER) {
             if (serverStarted) {
@@ -408,11 +516,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         return 0;
     }
     case WM_CTLCOLORSTATIC: {
-        if ((HWND)lParam == hIP || (HWND)lParam == hName) {
+        if ((HWND)lParam == hIP || (HWND)lParam == hName || 
+            (HWND)lParam == hGlobalIPLabel || (HWND)lParam == hLocalIPLabel) {
             HDC hdcStatic = (HDC)wParam;
-            SetTextColor(hdcStatic, RGB(0, 0, 0)); // Установить цвет текста (черный)
-            SetBkColor(hdcStatic, RGB(255, 255, 255)); // Установить цвет фона (белый)
-            return (LRESULT)GetStockObject(WHITE_BRUSH); // Вернуть белую кисть
+            SetTextColor(hdcStatic, RGB(0, 0, 0));
+            SetBkColor(hdcStatic, RGB(255, 255, 255));
+            return (LRESULT)GetStockObject(WHITE_BRUSH);
         }
         break;
     }
@@ -488,7 +597,6 @@ void startServer() {
     succesConnection = true;
     PostMessage(hwnd, WM_STOP_WAIT, 0, 0);
 }
-
 void startClient(const wstring& serverIP) {
     WSADATA wsaData;
     struct sockaddr_in serv_addr;
@@ -523,6 +631,32 @@ void startClient(const wstring& serverIP) {
     PostMessage(hwnd, WM_STOP_WAIT, 0, 0);
 }
 
+void setName() {
+    int len = GetWindowTextLength(hEditName) + 1;
+    wchar_t* buf = new wchar_t[len];
+    GetWindowText(hEditName, buf, len);
+    wstring my_name(buf);
+    if (my_name.empty())
+        myName = L"anonym";
+    else
+        myName = my_name;
+    delete[] buf;
+}
+void receiveName() {
+    uint byteSize = 0;
+    if (recv(sock, reinterpret_cast<char*>(&byteSize), sizeof(byteSize), 0) <= 0) {
+        reset();
+        return;
+    }
+    uint count = byteSize / sizeof(uint);
+    vector<uint> data(count);
+    if (recv(sock, reinterpret_cast<char*>(data.data()), byteSize, 0) <= 0) {
+        reset();
+        return;
+    }
+    hisName = decrypt(data);
+}
+
 void receiveMessages() {
     uint byteSize = 0;
     while (connected) {
@@ -548,7 +682,6 @@ void receiveMessages() {
         addToChat(hisName, message, false);
     }
 }
-
 void sendMessages(const wstring& message) {
     if (!message.empty() && sock != INVALID_SOCKET) {
         vector<uint> encrypt_message = encrypt(message);
@@ -557,7 +690,6 @@ void sendMessages(const wstring& message) {
         send(sock, reinterpret_cast<const char*>(encrypt_message.data()), byteSize, 0);
     }
 }
-
 void addToChat(const wstring& sender, const wstring& message, bool isOut) {
     // Получаем текущее время
     SYSTEMTIME time;
@@ -656,20 +788,6 @@ void addToChat(const wstring& sender, const wstring& message, bool isOut) {
 
     SendMessage(hEditChat, EM_SCROLL, SB_BOTTOM, 0);
 }
-void receiveName() {
-    uint byteSize = 0;
-    if (recv(sock, reinterpret_cast<char*>(&byteSize), sizeof(byteSize), 0) <= 0) {
-        reset();
-        return;
-    }
-    uint count = byteSize / sizeof(uint);
-    vector<uint> data(count);
-    if (recv(sock, reinterpret_cast<char*>(data.data()), byteSize, 0) <= 0) {
-        reset();
-        return;
-    }
-    hisName = decrypt(data);
-}
 
 void connect() {
     connected = true;
@@ -687,7 +805,6 @@ void connect() {
     thread(receiveMessages).detach();
     ShowChatInterface();
 }
-
 void stopConnection() {
     connected = false;
     
@@ -720,7 +837,6 @@ void stopConnection() {
     if (waiting)
         PostMessage(hwnd, WM_STOP_WAIT, 0, 0);
 }
-
 void reset() {
     stopConnection();
 
@@ -739,16 +855,69 @@ void reset() {
     ShowEnterScreen();
 }
 
-void setName() {
-    int len = GetWindowTextLength(hEditName) + 1;
-    wchar_t* buf = new wchar_t[len];
-    GetWindowText(hEditName, buf, len);
-    wstring my_name(buf);
-    if (my_name.empty())
-        myName = L"anonym";
-    else
-        myName = my_name;
-    delete[] buf;
+wstring getLocalIP() {
+    ULONG bufferLength = 0;
+    if (GetAdaptersAddresses(AF_INET, 0, NULL, NULL, &bufferLength) == ERROR_BUFFER_OVERFLOW) {
+        vector<BYTE> buffer(bufferLength);
+        IP_ADAPTER_ADDRESSES* pAddresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.data());
+
+        if (GetAdaptersAddresses(AF_INET, 0, NULL, pAddresses, &bufferLength) == ERROR_SUCCESS) {
+            for (IP_ADAPTER_ADDRESSES* adapter = pAddresses; adapter != NULL; adapter = adapter->Next) {
+                if (adapter->OperStatus == IfOperStatusUp && adapter->IfType != IF_TYPE_SOFTWARE_LOOPBACK) {
+                    for (IP_ADAPTER_UNICAST_ADDRESS* address = adapter->FirstUnicastAddress;
+                        address != NULL;
+                        address = address->Next) {
+
+                        if (address->Address.lpSockaddr->sa_family == AF_INET) {
+                            SOCKADDR_IN* ipv4 = reinterpret_cast<SOCKADDR_IN*>(address->Address.lpSockaddr);
+                            wchar_t ipStr[16];
+                            InetNtop(AF_INET, &(ipv4->sin_addr), ipStr, 16);
+                            wstring ip(ipStr);
+                            if (ip.find(L"192.168") == 0 ||
+                                ip.find(L"10.") == 0 ||
+                                ip.find(L"172.16") == 0) {
+                                return ip;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return L"Not found";
+}
+wstring getGlobalIP() {
+    HINTERNET hInternet = InternetOpen(L"IP_RETRIEVER",
+        INTERNET_OPEN_TYPE_DIRECT,
+        NULL,
+        NULL,
+        0);
+    if (!hInternet) return L"Error";
+
+    HINTERNET hConnect = InternetOpenUrl(hInternet,
+        L"https://api.ipify.org",
+        NULL,
+        0,
+        INTERNET_FLAG_RELOAD,
+        0);
+    if (!hConnect) {
+        InternetCloseHandle(hInternet);
+        return L"Error";
+    }
+
+    char buffer[16] = { 0 };
+    DWORD bytesRead = 0;
+    if (InternetReadFile(hConnect, buffer, sizeof(buffer) - 1, &bytesRead) && bytesRead > 0) {
+        buffer[bytesRead] = 0;
+        wstring result(buffer, buffer + bytesRead);
+        InternetCloseHandle(hConnect);
+        InternetCloseHandle(hInternet);
+        return result;
+    }
+
+    InternetCloseHandle(hConnect);
+    InternetCloseHandle(hInternet);
+    return L"Not found";
 }
 
 //RSA
@@ -868,7 +1037,6 @@ vector<uint> encrypt(const wstring& message) {
     }
     return encrypted;
 }
-
 wstring decrypt(const vector<uint>& encrypted) {
     wstring decrypted;
     size_t block_chars = static_cast<size_t>(log2(n) / (CHAR_BIT * sizeof(wchar_t))) - 1;

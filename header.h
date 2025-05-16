@@ -11,6 +11,10 @@
 #include <vector>
 #include <cmath>
 #include <richedit.h>
+#include <iphlpapi.h>
+#include <wininet.h>
+#pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "wininet.lib")
 HMODULE hRichEditLib = LoadLibrary(TEXT("Msftedit.dll"));
 
 #pragma comment(lib, "ws2_32.lib")
@@ -29,6 +33,12 @@ using namespace std;
 #define IDC_NAME 110
 #define IDC_HISNAME 111
 #define IDC_BUTTON_DISCONNECT 112
+#define IDC_LOCAL_IP 113
+#define IDC_GLOBAL_IP 114
+#define IDC_GLOBAL_IP_LABEL 115
+#define IDC_GLOBAL_IP_COPY 116
+#define IDC_LOCAL_IP_LABEL 117
+#define IDC_LOCAL_IP_COPY 118
 #define WM_START_WAIT WM_USER + 1
 #define WM_STOP_WAIT WM_USER + 2
 #define WM_DISCONNECT WM_USER + 3
@@ -47,6 +57,12 @@ HWND hName;
 HWND hwnd;
 HWND hHisName;
 HWND hButtonDisconnect;
+HWND hGlobalIP;
+HWND hLocalIP;
+HWND hGlobalIPLabel;
+HWND hLocalIPLabel;
+HWND hGlobalIPCopy;
+HWND hLocalIPCopy;
 
 //LOGIC FUNC
 void startServer();
@@ -59,6 +75,8 @@ void receiveName();
 void connect();
 void reset();
 void setName();
+wstring getLocalIP();
+wstring getGlobalIP();
 
 //RSA
 void rsa(uint& e, uint& d, uint& n);
@@ -93,6 +111,8 @@ bool lastWasOutgoing = false;
 bool firstMes = true;
 wstring myName;
 wstring hisName;
+wstring localIP;
+wstring globalIP;
 
 //INTERFACE
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
