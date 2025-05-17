@@ -89,7 +89,7 @@ uint generate_prime(int bits);
 vector<uint> encrypt(const wstring& message);
 wstring decrypt(const vector<uint>& encrypted);
 //RSA VAR
-uint e = 65537, d, n; // e,n - public; d,n - private
+uint e, d, n; // e,n - public; d,n - private
 uint e_his, n_his;
 
 //VAR
@@ -113,10 +113,12 @@ wstring myName;
 wstring hisName;
 wstring localIP;
 wstring globalIP;
+wstring maskIP = L"***.***.***.***";
 
 //INTERFACE
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK EditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK IPEditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void CreateInterface(HINSTANCE hInstance, int nCmdShow);
 void ShowEnterScreen();
 void ShowChatInterface();

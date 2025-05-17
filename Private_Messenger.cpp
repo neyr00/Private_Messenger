@@ -67,6 +67,7 @@ void CreateInterface(HINSTANCE hInstance, int nCmdShow) {
 void ShowEnterScreen() {
     globalIP = getGlobalIP();
     localIP = getLocalIP();
+
     HFONT hFont = CreateMyFont(20);
     hIP = CreateWindowEx(
         0,
@@ -171,7 +172,7 @@ void ShowEnterScreen() {
     hGlobalIP = CreateWindowEx(
         0,
         L"EDIT",
-        globalIP.c_str(),
+        maskIP.c_str(),
         WS_CHILD | WS_VISIBLE | ES_READONLY | WS_BORDER,
         140, 70, 140, 25,
         hwnd,
@@ -179,11 +180,12 @@ void ShowEnterScreen() {
         hInst,
         NULL
     );
+    SetWindowLongPtr(hGlobalIP, GWLP_USERDATA, (LONG_PTR)SetWindowLongPtr(hGlobalIP, GWLP_WNDPROC, (LONG_PTR)IPEditSubclassProc));
     SendMessage(hGlobalIP, WM_SETFONT, (WPARAM)hFont, TRUE);
     hLocalIP = CreateWindowEx(
         0,
         L"EDIT",
-        localIP.c_str(),
+        maskIP.c_str(),
         WS_CHILD | WS_VISIBLE | ES_READONLY | WS_BORDER,
         140, 100, 140, 25,
         hwnd,
@@ -191,6 +193,7 @@ void ShowEnterScreen() {
         hInst,
         NULL
     );
+    SetWindowLongPtr(hLocalIP, GWLP_USERDATA, (LONG_PTR)SetWindowLongPtr(hLocalIP, GWLP_WNDPROC, (LONG_PTR)IPEditSubclassProc));
     SendMessage(hLocalIP, WM_SETFONT, (WPARAM)hFont, TRUE);
     hGlobalIPCopy = CreateWindowEx(
         0,
@@ -528,7 +531,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
-
 LRESULT CALLBACK EditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
     case WM_KEYDOWN: {
@@ -553,7 +555,27 @@ LRESULT CALLBACK EditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
     }
     return CallWindowProc((WNDPROC)GetWindowLongPtr(hWnd, GWLP_USERDATA), hWnd, uMsg, wParam, lParam);
 }
-
+LRESULT CALLBACK IPEditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch (uMsg) {
+        case WM_MOUSEMOVE: {
+            TRACKMOUSEEVENT tme;
+            tme.cbSize = sizeof(TRACKMOUSEEVENT);
+            tme.dwFlags = TME_LEAVE;
+            tme.hwndTrack = hWnd;
+            tme.dwHoverTime = HOVER_DEFAULT;
+            TrackMouseEvent(&tme);
+            if(hWnd == hGlobalIP) SetWindowText(hWnd, globalIP.c_str());
+            if (hWnd == hLocalIP) SetWindowText(hWnd, localIP.c_str());
+            return 0;
+        }
+        case WM_MOUSELEAVE: {
+            if (hWnd == hGlobalIP) SetWindowText(hGlobalIP, maskIP.c_str());
+            if (hWnd == hLocalIP) SetWindowText(hLocalIP, maskIP.c_str());
+            return 0;
+        }
+    }
+    return CallWindowProc((WNDPROC)GetWindowLongPtr(hWnd, GWLP_USERDATA), hWnd, uMsg, wParam, lParam);
+}
 void startServer() {
     serverStarted = true;
     WSADATA wsaData;
