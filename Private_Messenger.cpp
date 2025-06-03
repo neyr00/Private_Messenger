@@ -438,6 +438,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         }
         else if (LOWORD(wParam) == IDC_BUTTON_SERVER) {
             if (serverStarted) {
+                isServerWait = true;
                 stopConnection();
                 StopWaiting();
             }
@@ -844,7 +845,6 @@ void stopConnection() {
     
     serverStarted = false;
     succesConnection = false;
-    isServerWait = false;
     lastWasOutgoing = false;
     firstMes = true;
     
